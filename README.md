@@ -1,0 +1,107 @@
+# 🌀 VoidDeath | Hardcore Dead-Ban System
+
+**VoidDeath** is a professional, high-performance solution for Hardcore Minecraft servers. It provides a seamless way to manage player deaths by implementing a customizable "Dead-Ban" system, ensuring your server maintains its high-stakes environment without unnecessary overhead.
+
+### 🛠️ Key Features
+
+* **Customizable Ban Duration** – Set exactly how long a player should be banned after death (e.g., 24h, 7 days, or permanent).
+* **Performance Optimized** – Built with a "Void-First" mindset. Minimal impact on TPS, even with high player counts.
+* **Clean Death Messages** – Professional, customizable death announcements to inform the community.
+* **Admin Bypass** – Operators can be exempted from the dead-ban system for testing and management.
+
+---
+
+### 💻 Installation & Setup
+
+1.  Download `.jar` file.
+2.  Drop the file into your server's `/plugins` folder.
+3.  Restart your server to generate the configuration files.
+4.  Customize your settings in `config.yml`.
+
+---
+
+### 📜〢 Configuration Example
+
+```yaml
+############################################################
+#                                                          #
+#             VOIDDEATH - CREATED BY KUBA_121              #
+#          A professional death-ban event system           #
+#                                                          #
+############################################################
+
+############################################################
+#                                                          #
+#  PERMISSIONS:                                            #
+#  - voiddeath.admin: Access to /voiddeath reload,         #
+#    /deadlist, /cleardeadlist                             #
+#  - voiddeath.revive: Access to /revive <player>          #
+#  - voiddeath.bypass: Immune to death-ban                 #
+#                                                          #
+############################################################
+
+# Ban duration after death (e.g., 30s, 10m, 2h, 1d, perm)
+ban-duration: "perm"
+
+# Should administrators (voiddeath.bypass) be exempt from the ban?
+admin-bypass: true
+
+messages:
+  # The global prefix for all system messages
+  prefix: "&4&lVoidDeath &r&8»&7"
+
+  # Message sent to all players when someone dies
+  elimination-broadcast: "%prefix% &f%player% &7was consumed by the darkness."
+
+  # The screen shown to players when they try to join while banned
+  # Placeholders: %time% (remaining duration), %prefix%
+  kick-message:
+    - "&4&l● ELIMINATED ●"
+    - ""
+    - "&8Your soul has left this world."
+    - "&7Status: &4Death Ban"
+    - ""
+    - "&8Return will be possible in: &f%time%"
+    - ""
+    - "&8&oCheck our Discord for more information."
+
+  # Structure for the /voiddeath help command
+  help-menu:
+    - "&8&m--------&r &4&lVoidDeath Help &8&m--------"
+    - "&7/voiddeath help &8- &fDisplays this menu"
+    - "&7/voiddeath reload &8- &fReloads the plugin"
+    - "&7/revive <player> &8- &fRevive an eliminated player"
+    - "&7/deadlist &8- &fShow all eliminated players"
+    - "&7/cleardeadlist &8- &fClear the entire database"
+    - "&8&m--------------------------------"
+
+  # Correct command usage messages
+  usage-voiddeath: "%prefix% Usage: &4/voiddeath &8<&7help&8/&7reload&8>"
+  usage-revive: "%prefix% Usage: &4/revive &8<&7player&8>"
+
+  # Standard system notifications
+  no-permission: "%prefix% You lack the &4void power &7to do this."
+  revive-success: "%prefix% &f%player% &7has been &4brought back &7to life."
+  revive-not-found: "%prefix% &4%player% &7is not currently dead."
+  list-empty: "%prefix% The void is currently empty."
+  reload-success: "%prefix% Configuration and data &4reloaded &7successfully."
+  
+  # Styling for the /deadlist command
+  list-header: "&4&lELIMINATED PLAYERS LIST"
+  list-item: "&8• &f%player% &8(&4%time%&8)"
+  
+  # Database and time formatting
+  clear-success: "%prefix% The elimination database has been &4purged&7."
+  time-perm: "&4&lFOREVER"
+```
+
+---
+
+### 🛡️ Support & Community
+
+Join our **Code Hub** for technical support, bug reports, and updates.
+
+* **Discord:** [[Join Support Server]](https://discord.gg/jdWeSJbcKx)
+* **Source:** [[GitHub]](https://github.com/kuba-121)
+
+---
