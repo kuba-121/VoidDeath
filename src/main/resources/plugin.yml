@@ -1,0 +1,39 @@
+name: VoidDeath
+version: 1.0.0
+main: com.voiddeath.VoidDeathPlugin
+api-version: 1.13
+author: kuba_121
+description: A high-performance death ban system compatible with Spigot, Paper, and Folia.
+
+commands:
+  voiddeath:
+    description: Main command for VoidDeath.
+    usage: /voiddeath <help/reload>
+    aliases: [vd]
+    permission: voiddeath.admin
+  revive:
+    description: Revive a player from the elimination list.
+    usage: /revive <player>
+    aliases: [unbanvoid, rev]
+    permission: voiddeath.revive
+  deadlist:
+    description: Show the list of currently eliminated players.
+    usage: /deadlist
+    aliases: [vlist]
+    permission: voiddeath.admin
+  cleardeadlist:
+    description: Completely clear the elimination database.
+    usage: /cleardeadlist
+    aliases: [vclear]
+    permission: voiddeath.admin
+
+permissions:
+  voiddeath.admin:
+    description: Allows reloading the plugin and managing the dead list.
+    default: op
+  voiddeath.revive:
+    description: Allows reviving players.
+    default: op
+  voiddeath.bypass:
+    description: Players with this permission will not be banned upon death.
+    default: false
