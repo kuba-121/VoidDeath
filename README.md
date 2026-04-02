@@ -102,6 +102,6 @@ messages:
 Join our **Code Hub** for technical support, bug reports, and updates.
 
 * **Discord:** [[Join Support Server]](https://discord.gg/jdWeSJbcKx)
-* **Source:** [[GitHub]](https://github.com/kuba-121)
+* **Modrinth:** [[Download on Modrinth]](https://modrinth.com/plugin/voiddeath)
 
 ---
