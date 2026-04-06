@@ -15,6 +15,9 @@
 #                                                          #
 ############################################################
 
+# Should the plugin notify you about new updates?
+update-check: true
+
 # Ban duration after death (e.g., 30s, 10m, 2h, 1d, perm)
 ban-duration: "perm"
 

@@ -1,5 +1,8 @@
 package com.voiddeath;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
@@ -14,10 +17,13 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -29,6 +35,10 @@ public class VoidDeathPlugin extends JavaPlugin implements Listener, CommandExec
     private final Map<String, Long> bannedPlayers = new ConcurrentHashMap<>();
     private File dataFile;
     private FileConfiguration dataConfig;
+
+    private String latestVersion = null;
+    private String downloadUrl = "";
+    private boolean isImportant = false;
     
     private final boolean isFolia = isClassPresent("io.papermc.paper.threadedregions.RegionScheduler");
 
@@ -44,7 +54,14 @@ public class VoidDeathPlugin extends JavaPlugin implements Listener, CommandExec
         getCommand("deadlist").setExecutor(this);
         getCommand("voiddeath").setExecutor(this);
         
-        getLogger().info("VoidDeath enabled! Engine: " + (isFolia ? "Folia" : "Standard (Spigot/Paper)"));
+        int pluginId = 30614;
+        new Metrics(this, pluginId);
+
+        if (getConfig().getBoolean("update-check", true)) {
+            checkUpdate();
+        }
+
+        getLogger().info("VoidDeath has been enabled!");
     }
 
     private void loadData() {
@@ -58,6 +75,38 @@ public class VoidDeathPlugin extends JavaPlugin implements Listener, CommandExec
         if (dataConfig.contains("banned")) {
             for (String uuid : dataConfig.getConfigurationSection("banned").getKeys(false)) {
                 bannedPlayers.put(uuid, dataConfig.getLong("banned." + uuid));
+            }
+        }
+    }
+
+    public void checkUpdate() {
+        String url = "https://raw.githubusercontent.com/kuba-121/VoidDeath/refs/heads/main/version.json";
+
+        Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+            try (InputStreamReader reader = new InputStreamReader(new URL(url).openStream())) {
+                JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
+                
+                this.latestVersion = json.get("version").getAsString();
+                this.downloadUrl = json.get("url").getAsString();
+                this.isImportant = json.get("important").getAsBoolean();
+                
+                String currentVersion = getDescription().getVersion();
+
+                if (!currentVersion.equals(latestVersion)) {
+                    getLogger().warning("A new version of VoidDeath (v" + latestVersion + ") is available!");
+                    getLogger().warning("Download here: " + downloadUrl);
+                }
+            } catch (Exception ignored) {} 
+        });
+    }
+
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        if (latestVersion != null && isImportant && !getDescription().getVersion().equals(latestVersion)) {
+            if (player.hasPermission("voiddeath.admin")) {
+                String prefix = ChatColor.translateAlternateColorCodes('&', getConfig().getString("messages.prefix", ""));
+                player.sendMessage(prefix + " §c§lNew important update! §f(v" + latestVersion + ")\n§7Download: §n" + downloadUrl);
             }
         }
     }
