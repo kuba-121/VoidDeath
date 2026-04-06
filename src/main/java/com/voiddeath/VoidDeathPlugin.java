@@ -84,7 +84,7 @@ public class VoidDeathPlugin extends JavaPlugin implements Listener, CommandExec
 
         Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
             try (InputStreamReader reader = new InputStreamReader(new URL(url).openStream())) {
-                JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
+                JsonObject json = new JsonParser().parse(reader).getAsJsonObject();
                 
                 this.latestVersion = json.get("version").getAsString();
                 this.downloadUrl = json.get("url").getAsString();
@@ -206,7 +206,7 @@ public class VoidDeathPlugin extends JavaPlugin implements Listener, CommandExec
 
         if (isFolia) {
             Bukkit.getGlobalRegionScheduler().execute(this, () -> Bukkit.broadcastMessage(broadcastMsg));
-            p.getScheduler().run(this, task -> p.kickPlayer(kickReason), null);
+            p.kickPlayer(kickReason);
         } else {
             Bukkit.getScheduler().runTask(this, () -> {
                 Bukkit.broadcastMessage(broadcastMsg);
