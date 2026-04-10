@@ -1,9 +1,11 @@
 name: VoidDeath
-version: 1.0.2
+version: 1.0.3
 main: com.voiddeath.VoidDeathPlugin
 api-version: 1.13
 author: kuba_121
 description: A high-performance death ban system compatible with Spigot, Paper, and Folia.
+
+folia-supported: true
 
 commands:
   voiddeath:

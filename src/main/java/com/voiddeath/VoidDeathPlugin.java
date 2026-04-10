@@ -40,7 +40,8 @@ public class VoidDeathPlugin extends JavaPlugin implements Listener, CommandExec
     private String downloadUrl = "";
     private boolean isImportant = false;
     
-    private final boolean isFolia = isClassPresent("io.papermc.paper.threadedregions.RegionScheduler");
+    private final boolean isFolia = isClassPresent("io.papermc.paper.threadedregions.RegionScheduler") || 
+                                    isClassPresent("io.papermc.paper.threadedregions.TickRegionScheduler");
 
     @Override
     public void onEnable() {
@@ -49,16 +50,15 @@ public class VoidDeathPlugin extends JavaPlugin implements Listener, CommandExec
         
         getServer().getPluginManager().registerEvents(this, this);
 
-        getCommand("revive").setExecutor(this);
-        getCommand("cleardeadlist").setExecutor(this);
-        getCommand("deadlist").setExecutor(this);
-        getCommand("voiddeath").setExecutor(this);
+        if (getCommand("revive") != null) getCommand("revive").setExecutor(this);
+        if (getCommand("cleardeadlist") != null) getCommand("cleardeadlist").setExecutor(this);
+        if (getCommand("deadlist") != null) getCommand("deadlist").setExecutor(this);
+        if (getCommand("voiddeath") != null) getCommand("voiddeath").setExecutor(this);
         
-        int pluginId = 30614;
-        new Metrics(this, pluginId);
+        new Metrics(this, 30614);
 
         if (getConfig().getBoolean("update-check", true)) {
-            checkUpdate();
+            new Thread(this::checkUpdate, "VoidDeath-UpdateThread").start();
         }
 
         getLogger().info("VoidDeath has been enabled!");
@@ -67,37 +67,38 @@ public class VoidDeathPlugin extends JavaPlugin implements Listener, CommandExec
     private void loadData() {
         dataFile = new File(getDataFolder(), "data.yml");
         if (!dataFile.exists()) {
-            try { dataFile.createNewFile(); } catch (IOException e) { e.printStackTrace(); }
+            try { 
+                getDataFolder().mkdirs();
+                dataFile.createNewFile(); 
+            } catch (IOException e) { e.printStackTrace(); }
         }
         dataConfig = YamlConfiguration.loadConfiguration(dataFile);
         
         bannedPlayers.clear();
         if (dataConfig.contains("banned")) {
-            for (String uuid : dataConfig.getConfigurationSection("banned").getKeys(false)) {
-                bannedPlayers.put(uuid, dataConfig.getLong("banned." + uuid));
+            if (dataConfig.getConfigurationSection("banned") != null) {
+                for (String uuid : dataConfig.getConfigurationSection("banned").getKeys(false)) {
+                    bannedPlayers.put(uuid, dataConfig.getLong("banned." + uuid));
+                }
             }
         }
     }
 
     public void checkUpdate() {
         String url = "https://raw.githubusercontent.com/kuba-121/VoidDeath/refs/heads/main/version.json";
-
-        Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
-            try (InputStreamReader reader = new InputStreamReader(new URL(url).openStream())) {
-                JsonObject json = new JsonParser().parse(reader).getAsJsonObject();
-                
-                this.latestVersion = json.get("version").getAsString();
-                this.downloadUrl = json.get("url").getAsString();
-                this.isImportant = json.get("important").getAsBoolean();
-                
-                String currentVersion = getDescription().getVersion();
-
-                if (!currentVersion.equals(latestVersion)) {
-                    getLogger().warning("A new version of VoidDeath (v" + latestVersion + ") is available!");
-                    getLogger().warning("Download here: " + downloadUrl);
-                }
-            } catch (Exception ignored) {} 
-        });
+        try (InputStreamReader reader = new InputStreamReader(new URL(url).openStream())) {
+            JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
+            
+            this.latestVersion = json.get("version").getAsString();
+            this.downloadUrl = json.get("url").getAsString();
+            this.isImportant = json.get("important").getAsBoolean();
+            
+            String currentVersion = getDescription().getVersion();
+            if (!currentVersion.equals(latestVersion)) {
+                getLogger().warning("A new version of VoidDeath (v" + latestVersion + ") is available!");
+                getLogger().warning("Download here: " + downloadUrl);
+            }
+        } catch (Exception ignored) {} 
     }
 
     @EventHandler
@@ -125,7 +126,7 @@ public class VoidDeathPlugin extends JavaPlugin implements Listener, CommandExec
         };
 
         if (isFolia) {
-            Bukkit.getGlobalRegionScheduler().execute(this, saveTask);
+            Bukkit.getAsyncScheduler().runNow(this, t -> saveTask.run());
         } else {
             Bukkit.getScheduler().runTaskAsynchronously(this, saveTask);
         }
@@ -134,11 +135,8 @@ public class VoidDeathPlugin extends JavaPlugin implements Listener, CommandExec
     private String msg(String path) {
         String prefix = getConfig().getString("messages.prefix", "");
         String message = getConfig().getString("messages." + path);
-        
         if (message == null) return ChatColor.RED + "Missing config path: " + path;
-
-        String formatted = message.replace("%prefix%", prefix);
-        return ChatColor.translateAlternateColorCodes('&', formatted);
+        return ChatColor.translateAlternateColorCodes('&', message.replace("%prefix%", prefix));
     }
 
     private String getKickReason(long expiry) {
@@ -147,15 +145,12 @@ public class VoidDeathPlugin extends JavaPlugin implements Listener, CommandExec
         String timeLeft = formatTimeLeft(expiry);
         
         return lines.stream()
-                .map(line -> {
-                    String formatted = line.replace("%prefix%", prefix).replace("%time%", timeLeft);
-                    return ChatColor.translateAlternateColorCodes('&', formatted);
-                })
+                .map(line -> ChatColor.translateAlternateColorCodes('&', line.replace("%prefix%", prefix).replace("%time%", timeLeft)))
                 .collect(Collectors.joining("\n"));
     }
 
     private long parseDuration(String duration) {
-        if (duration.equalsIgnoreCase("-1") || duration.equalsIgnoreCase("perm")) return -1;
+        if (duration == null || duration.equalsIgnoreCase("-1") || duration.equalsIgnoreCase("perm")) return -1;
         try {
             long time = Long.parseLong(duration.substring(0, duration.length() - 1));
             char unit = duration.toLowerCase().charAt(duration.length() - 1);
@@ -166,9 +161,7 @@ public class VoidDeathPlugin extends JavaPlugin implements Listener, CommandExec
                 case 'd': return System.currentTimeMillis() + (time * 86400000);
                 default: return -1;
             }
-        } catch (Exception e) {
-            return -1;
-        }
+        } catch (Exception e) { return -1; }
     }
 
     private String formatTimeLeft(long expiry) {
@@ -192,10 +185,7 @@ public class VoidDeathPlugin extends JavaPlugin implements Listener, CommandExec
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onDeath(PlayerDeathEvent e) {
         Player p = e.getEntity();
-        
-        if (getConfig().getBoolean("admin-bypass") && p.hasPermission("voiddeath.bypass")) {
-            return;
-        }
+        if (getConfig().getBoolean("admin-bypass") && p.hasPermission("voiddeath.bypass")) return;
 
         long expiry = parseDuration(getConfig().getString("ban-duration", "perm"));
         bannedPlayers.put(p.getUniqueId().toString(), expiry);
@@ -206,7 +196,7 @@ public class VoidDeathPlugin extends JavaPlugin implements Listener, CommandExec
 
         if (isFolia) {
             Bukkit.getGlobalRegionScheduler().execute(this, () -> Bukkit.broadcastMessage(broadcastMsg));
-            p.kickPlayer(kickReason);
+            p.getScheduler().run(this, t -> p.kickPlayer(kickReason), null);
         } else {
             Bukkit.getScheduler().runTask(this, () -> {
                 Bukkit.broadcastMessage(broadcastMsg);
@@ -220,13 +210,11 @@ public class VoidDeathPlugin extends JavaPlugin implements Listener, CommandExec
         String uuid = e.getUniqueId().toString();
         if (bannedPlayers.containsKey(uuid)) {
             long expiry = bannedPlayers.get(uuid);
-            
             if (expiry != -1 && expiry < System.currentTimeMillis()) {
                 bannedPlayers.remove(uuid);
                 saveData();
                 return;
             }
-            
             e.disallow(AsyncPlayerPreLoginEvent.Result.KICK_BANNED, getKickReason(expiry));
         }
     }
@@ -235,9 +223,7 @@ public class VoidDeathPlugin extends JavaPlugin implements Listener, CommandExec
         try {
             Class.forName(className);
             return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
+        } catch (ClassNotFoundException | NoClassDefFoundError e) { return false; }
     }
 
     @Override
@@ -254,23 +240,14 @@ public class VoidDeathPlugin extends JavaPlugin implements Listener, CommandExec
                     sender.sendMessage(msg("reload-success"));
                     return true;
                 }
-                
                 if (args[0].equalsIgnoreCase("help")) {
-                    List<String> helpMenu = getConfig().getStringList("messages.help-menu");
-                    for (String line : helpMenu) {
-                        sender.sendMessage(ChatColor.translateAlternateColorCodes('&', line));
-                    }
+                    getConfig().getStringList("messages.help-menu").forEach(line -> 
+                        sender.sendMessage(ChatColor.translateAlternateColorCodes('&', line)));
                     return true;
                 }
-                
-                sender.sendMessage(msg("usage-voiddeath"));
-                return true;
             }
-            
-            List<String> helpMenu = getConfig().getStringList("messages.help-menu");
-            for (String line : helpMenu) {
-                sender.sendMessage(ChatColor.translateAlternateColorCodes('&', line));
-            }
+            getConfig().getStringList("messages.help-menu").forEach(line -> 
+                sender.sendMessage(ChatColor.translateAlternateColorCodes('&', line)));
             return true;
         }
 
